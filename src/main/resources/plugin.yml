@@ -1,0 +1,4 @@
+name: KGui
+version: '${project.version}'
+main: com.nextdevv.kgui.KGui
+api-version: '1.20'
