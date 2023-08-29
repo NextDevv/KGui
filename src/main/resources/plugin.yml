@@ -1,8 +1,0 @@
-name: KGui
-version: '${project.version}'
-main: com.nextdevv.kgui.KGuiPlugin
-api-version: '1.20'
-commands:
-  kgui-test:
-    permission: kgui.test
-    description: Test command

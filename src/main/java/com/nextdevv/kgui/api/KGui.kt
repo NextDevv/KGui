@@ -1,6 +1,5 @@
 package com.nextdevv.kgui.api
 
-import com.nextdevv.kgui.KGuiPlugin
 import com.nextdevv.kgui.models.GuiBorder
 import com.nextdevv.kgui.models.GuiButton
 import com.nextdevv.kgui.models.Pages
@@ -16,7 +15,6 @@ import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
 import org.bukkit.event.inventory.InventoryOpenEvent
 import org.bukkit.event.player.AsyncPlayerChatEvent
-import org.bukkit.event.player.PlayerChatEvent
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemFlag
