@@ -90,10 +90,10 @@ val gui: Inventory = KGui(plugin).builder()
         .setName("&c&lSearch")
         .setMaterial(Material.COMPASS)
         .build()
-  ).setOnClick { builder: KGui.Builder?, player: Player? -> 
+  ).setOnClick { builder: KGui.Builder, player: Player -> 
   // Handle the click event
   })
-  .addItemStackClickListener { itemStack: ItemStack?, player: Player?, builder: KGui.Builder? -> 
+  .addItemStackClickListener { itemStack: ItemStack, player: Player, builder: KGui.Builder -> 
     // Handle the click event on the item
   }
   .build()
