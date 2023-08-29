@@ -11,7 +11,33 @@ KGui is a powerful and user-friendly API for creating inventory GUIs in Spigot p
 ## Getting Started
 To get started with KGui, follow these steps:
 1. **Dependency Setup:** Add KGui to your project's dependencies. You can either compile the library yourself or use a dependency management tool like Maven or Gradle.
-2. **Import KGui Classes:** Import the necessary classes at the beginning of your plugin class or wherever you intend to use KGui:
+  **gradle**
+```GRADLE
+repositories {
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    implementation 'com.github.NextDevv:KGui:1.0.0'
+}
+```
+  **maven**
+```XML
+<repositories>
+ <repository>
+   <id>jitpack.io</id>
+   <url>https://jitpack.io</url>
+ </repository>
+</repositories>
+
+
+<dependency>
+   <groupId>com.github.NextDevv</groupId>
+   <artifactId>KGui</artifactId>
+   <version>1.0.0</version>
+</dependency>
+``` 
+3. **Import KGui Classes:** Import the necessary classes at the beginning of your plugin class or wherever you intend to use KGui:
 ```JAVA
 import com.nextdevv.kgui.api.KGui;
 import com.nextdevv.kgui.models.GuiButton;
