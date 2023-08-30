@@ -572,14 +572,6 @@ class KGui(private val plugin: JavaPlugin) {
                 }
             }
 
-            // Set the items of the gui
-            if (pages.pages.size >= currentPage) {
-                for (itemStack in pages.pages[currentPage - 1].getContent()) {
-                    inventory.addItem(itemStack)
-                    itemStacks.add(itemStack)
-                }
-            }
-
             // Set the buttons specified in the conditionsButton hashmap
             for (index in conditionsButton.keys) {
                 val condition = conditionsButton[index]!!["condition"] as Builder.() -> Boolean
@@ -609,6 +601,14 @@ class KGui(private val plugin: JavaPlugin) {
             // Set the buttons specified in the buttons hashmap
             for (index in buttons.keys) {
                 inventory.setItem(index, buttons[index]!!.getItemStack())
+            }
+
+            // Set the items of the gui
+            if (pages.pages.size >= currentPage) {
+                for (itemStack in pages.pages[currentPage - 1].getContent()) {
+                    inventory.addItem(itemStack)
+                    itemStacks.add(itemStack)
+                }
             }
 
             return inventory
