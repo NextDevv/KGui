@@ -7,6 +7,7 @@ import com.nextdevv.kgui.utils.Alignment
 import com.nextdevv.kgui.utils.tac
 import org.bukkit.Bukkit
 import org.bukkit.ChatColor
+import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.HandlerList
@@ -24,10 +25,15 @@ import java.util.UUID
 import java.util.concurrent.CompletableFuture
 
 class KGui(private val plugin: JavaPlugin) {
-    fun builder(): Builder {
-        // Returns a new Builder instance
+    private val builders: HashMap<Int, Builder> = hashMapOf()
+    fun builder(id: Int): Builder {
+        if(builders.containsKey(id)) {
+            return builders[id]!!
+        }
+
         val builder = Builder()
         Bukkit.getPluginManager().registerEvents(builder, plugin)
+        builders[id] = builder
         return builder
     }
 
@@ -53,6 +59,8 @@ class KGui(private val plugin: JavaPlugin) {
         private var firstOpen = false
         private val responses: HashMap<UUID, String> = hashMapOf()
         private val waitingForPlayer: MutableList<UUID> = mutableListOf()
+        private val conditionsButton: HashMap<Int, HashMap<String, Any>> = hashMapOf()
+        private val conditionsItems: HashMap<Int, HashMap<String, Any>> = hashMapOf()
 
         /**
          * Fills all the slots with the itemStack given
@@ -193,56 +201,31 @@ class KGui(private val plugin: JavaPlugin) {
          * @return Builder
          */
         fun addButton(alignment: Alignment, guiButton: GuiButton): Builder {
-            when(alignment) {
-                Alignment.TOP_LEFT -> {
-                    buttons[0] = guiButton
-                }
-                Alignment.TOP_CENTER -> {
-                    buttons[4] = guiButton
-                }
-                Alignment.TOP_RIGHT -> {
-                    buttons[8] = guiButton
-                }
-                Alignment.CENTER_LEFT -> {
-                    // Calculate the center left index
-                    val size = rows * 9
-                    val centerIndex = (size / 2) - 5
-                    buttons[centerIndex - 4] = guiButton
-                }
-                Alignment.CENTER -> {
-                    // Calculate the center index
-                    val size = rows * 9
-                    val centerIndex = (size / 2) - 5
-                    buttons[centerIndex] = guiButton
-                }
-                Alignment.CENTER_RIGHT -> {
-                    // Calculate the center right index
-                    val size = rows * 9
-                    val centerIndex = (size / 2) - 5
-                    buttons[centerIndex + 4] = guiButton
-                }
-                Alignment.BOTTOM_LEFT -> {
-                    // Calculate the bottom left index
-                    val size = rows * 9
-                    val bottomIndex = size - 9
-                    buttons[bottomIndex] = guiButton
-                }
-                Alignment.BOTTOM_CENTER -> {
-                    // Calculate the bottom center index
-                    val size = rows * 9
-                    val bottomIndex = size - 9
-                    buttons[bottomIndex + 4] = guiButton
-                }
-                Alignment.BOTTOM_RIGHT -> {
-                    // Calculate the bottom right index
-                    val size = rows * 9
-                    val bottomIndex = size - 9
-                    buttons[bottomIndex + 8] = guiButton
-                }
-                else -> {
-                    throw Exception("Invalid alignment")
-                }
-            }
+            buttons[Alignment.getIndex(alignment, rows)] = guiButton
+            return this
+        }
+
+        /**
+         * Displays the button if the condition provided is met
+         *
+         * @param index: Int - The index to add the button at
+         * @param guiButton: GuiButton - The button to add
+         * @param condition: (Player) -> Boolean - The condition to check
+         */
+        fun addButtonWithCondition(index: Int, guiButton: GuiButton, condition: Builder.() -> Boolean): Builder {
+            conditionsButton[index] = hashMapOf("button" to guiButton, "condition" to condition)
+            return this
+        }
+
+        /**
+         * Displays the button if the condition provided is met
+         *
+         * @param alignment:  Alignment - The Alignment to add the button at
+         * @param guiButton: GuiButton - The button to add
+         * @param condition: (Player) -> Boolean - The condition to check
+         */
+        fun addButtonWithCondition(alignment: Alignment, guiButton: GuiButton, condition: Builder.() -> Boolean): Builder {
+            conditionsButton[Alignment.getIndex(alignment, rows)] = hashMapOf("button" to guiButton, "condition" to condition)
             return this
         }
 
@@ -262,7 +245,6 @@ class KGui(private val plugin: JavaPlugin) {
         @EventHandler
         private fun onInventoryOpen(event: InventoryOpenEvent) {
             // Check if it's the same inventory
-            println(event.view.title)
             if(event.view.title.tac() == title.tac()) {
                 // call on open listener
                 val player = event.player as Player
@@ -328,6 +310,43 @@ class KGui(private val plugin: JavaPlugin) {
             // itemStack: ItemStack - The item to set
             // index: Int - The index to set the item at
             itemSetIndex[index] = itemStack
+            return this
+        }
+
+        /**
+         * Sets an item at inventory index
+         *
+         * @param itemStack: ItemStack - The item to set
+         * @param alignment: Alignment - The alignment to set the item at
+         * @return Builder
+         */
+        fun setItem(itemStack: ItemStack, alignment: Alignment): Builder {
+            itemSetIndex[Alignment.getIndex(alignment, rows)] = itemStack
+            return this
+        }
+
+        /**
+         * Sets an item at inventory index if the condition provided is met
+         *
+         * @param itemStack: ItemStack - The item to set
+         * @param index: Int - The index to set the item at
+         * @param condition: Builder.() -> Boolean - The condition to check
+         */
+        fun setItem(itemStack: ItemStack, index: Int, condition: Builder.() -> Boolean): Builder {
+            conditionsItems[index] = hashMapOf("item" to itemStack, "condition" to condition)
+            return this
+        }
+
+        /**
+         * Sets an item at inventory index if the condition provided is met
+         *
+         * @param itemStack: ItemStack - The item to set
+         * @param alignment: Alignment - The alignment to set the item at
+         * @param condition: Builder.() -> Boolean - The condition to check
+         */
+        fun setItem(itemStack: ItemStack, alignment: Alignment, condition: Builder.() -> Boolean): Builder {
+            conditionsItems[Alignment.getIndex(alignment, rows)] =
+                hashMapOf("item" to itemStack, "condition" to condition)
             return this
         }
 
@@ -489,8 +508,6 @@ class KGui(private val plugin: JavaPlugin) {
          */
         fun build(): Inventory {
             val inventory = Bukkit.createInventory(inventoryHolder, rows * 9, ChatColor.translateAlternateColorCodes('&', title))
-            // Create at the border of the gui itemstacks specified in the border class, if every item is null, then it will use the default item
-            // The top border goes in a straight line, the bottom border goes in a straight line, the left border goes in a vertical line, and the right border goes in a vertical line
             if (border != null) {
                 // Top border
                 val border = border!!
@@ -560,6 +577,26 @@ class KGui(private val plugin: JavaPlugin) {
                 for (itemStack in pages.pages[currentPage - 1].getContent()) {
                     inventory.addItem(itemStack)
                     itemStacks.add(itemStack)
+                }
+            }
+
+            // Set the buttons specified in the conditionsButton hashmap
+            for (index in conditionsButton.keys) {
+                val condition = conditionsButton[index]!!["condition"] as Builder.() -> Boolean
+                if(condition()) {
+                    buttons[index] = conditionsButton[index]!!["button"] as GuiButton
+                }else {
+                    buttons.remove(index)
+                }
+            }
+
+            // Set the items specified in the conditionsItems hashmap
+            for (index in conditionsItems.keys) {
+                val condition = conditionsItems[index]!!["condition"] as Builder.() -> Boolean
+                if(condition()) {
+                    itemSetIndex[index] = conditionsItems[index]!!["item"] as ItemStack
+                }else {
+                    itemSetIndex.remove(index)
                 }
             }
 

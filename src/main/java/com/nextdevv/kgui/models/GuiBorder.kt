@@ -19,6 +19,6 @@ data class GuiBorder(
         var defaultItemStack: ItemStack = KItemStack().builder()
                 .setName(" ")
                 .addItemFlag(ItemFlag.HIDE_UNBREAKABLE)
-                .setMaterial(Material.BLACK_STAINED_GLASS_PANE)
+                .setMaterial(Material.STONE)
                 .build()
 )
