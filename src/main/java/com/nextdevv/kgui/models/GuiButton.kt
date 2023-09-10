@@ -9,6 +9,7 @@ class GuiButton {
     @get:JvmName("getOnClick1")
     @set:JvmName("setOnClick1")
     var onClick: ((KGui.Builder, Player) -> Unit)? = null
+    var onRightClick: ((KGui.Builder, Player) -> Unit)? = null
 
     fun setItemStack(itemStack: ItemStack): GuiButton {
         this.itemStack = itemStack
@@ -17,6 +18,21 @@ class GuiButton {
 
     fun setOnClick(onClick: (KGui.Builder, Player) -> Unit): GuiButton {
         this.onClick = onClick
+        return this
+    }
+
+    fun onClick(onClick: (KGui.Builder, Player) -> Unit): GuiButton {
+        this.onClick = onClick
+        return this
+    }
+
+    fun setOnRightClick(onRightClick: (KGui.Builder, Player) -> Unit): GuiButton {
+        this.onRightClick = onRightClick
+        return this
+    }
+
+    fun onRightClick(onRightClick: (KGui.Builder, Player) -> Unit): GuiButton {
+        this.onRightClick = onRightClick
         return this
     }
 

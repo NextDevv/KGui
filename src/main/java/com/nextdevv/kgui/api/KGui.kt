@@ -1,5 +1,6 @@
 package com.nextdevv.kgui.api
 
+import com.nextdevv.kgui.events.InventoryListener
 import com.nextdevv.kgui.models.GuiBorder
 import com.nextdevv.kgui.models.GuiButton
 import com.nextdevv.kgui.models.Pages
@@ -7,14 +8,16 @@ import com.nextdevv.kgui.utils.Alignment
 import com.nextdevv.kgui.utils.tac
 import org.bukkit.Bukkit
 import org.bukkit.ChatColor
-import org.bukkit.Material
+import org.bukkit.Location
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.HandlerList
 import org.bukkit.event.Listener
+import org.bukkit.event.inventory.ClickType
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
 import org.bukkit.event.inventory.InventoryOpenEvent
+import org.bukkit.event.inventory.InventoryType
 import org.bukkit.event.player.AsyncPlayerChatEvent
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.InventoryHolder
@@ -24,25 +27,24 @@ import org.bukkit.plugin.java.JavaPlugin
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 
-class KGui(private val plugin: JavaPlugin) {
-    private val builders: HashMap<Int, Builder> = hashMapOf()
-    fun builder(id: Int): Builder {
-        if(builders.containsKey(id)) {
-            return builders[id]!!
-        }
 
-        val builder = Builder()
-        Bukkit.getPluginManager().registerEvents(builder, plugin)
-        builders[id] = builder
-        return builder
+class KGui(private val plugin: JavaPlugin) {
+    val builders: MutableMap<UUID, Builder> = mutableMapOf()
+
+    fun init() {
+        Bukkit.getPluginManager().registerEvents(InventoryListener(this), plugin)
     }
 
+    fun builder(player: Player): Builder {
+        return builders.computeIfAbsent(player.uniqueId) { uuid ->
+            val builder = Builder(plugin, player, this)
+            builder
+        }
+    }
     @Suppress("MemberVisibilityCanBePrivate")
-    class Builder : Listener {
-        // Builder class to create Spigot inventory GUIs
+    class Builder(private val plugin: JavaPlugin, private val player: Player, private val kGui: KGui) : InventoryHolder {
         private var title: String = "Inventory"
         private var rows: Int = 4
-        private var inventoryHolder: InventoryHolder? = null
         private var border: GuiBorder? = null
         private var maxPages: Int = 1
         var currentPage: Int = 1
@@ -52,15 +54,26 @@ class KGui(private val plugin: JavaPlugin) {
         private var buttons: HashMap<Int, GuiButton> = hashMapOf()
         private val cacheVariables = hashMapOf<String, Any>()
         private val itemStacks = mutableListOf<ItemStack>()
-        private var itemStackClickListener: ((ItemStack, Player, Builder) -> Unit)? = null
+        private var itemStackClickListener: ((ItemStack, Player, Builder, ClickType) -> Unit)? = null
         private val borderItemStacks = mutableListOf<ItemStack>()
-        private var onCloseListener: ((Builder, Player) -> Unit)? = null
-        private var onOpenListener: ((Builder, Player) -> Unit)? = null
+        private var onCloseListener: (Builder.(Builder, Player) -> Unit)? = null
+        private var onOpenListener: (Builder.(Builder, Player) -> Unit)? = null
         private var firstOpen = false
-        private val responses: HashMap<UUID, String> = hashMapOf()
-        private val waitingForPlayer: MutableList<UUID> = mutableListOf()
+        internal val responses: HashMap<UUID, String> = hashMapOf()
+        internal val waitingForPlayer: MutableList<UUID> = mutableListOf()
         private val conditionsButton: HashMap<Int, HashMap<String, Any>> = hashMapOf()
         private val conditionsItems: HashMap<Int, HashMap<String, Any>> = hashMapOf()
+        private var changeScreen = false
+
+        /**
+         * If you change the current screen of the player the listener will be unregistered and it will break the inventory
+         * @param changeScreen: Boolean - If you change the current screen of the player the listener will be unregistered and it will break the inventory
+         * @return Builder
+         */
+        fun changeScreen(changeScreen: Boolean): Builder {
+            this.changeScreen = changeScreen
+            return this
+        }
 
         /**
          * Fills all the slots with the itemStack given
@@ -97,7 +110,7 @@ class KGui(private val plugin: JavaPlugin) {
          * @param onClick: (ItemStack, Player, Builder) -> Unit - The function to run when the itemstack is clicked
          * @return Builder
          */
-        fun addItemStackClickListener(onClick: (ItemStack, Player, Builder) -> Unit): Builder {
+        fun addItemStackClickListener(onClick: (ItemStack, Player, Builder, ClickType) -> Unit): Builder {
             // Adds a listener to every itemstack added to the inventory
             // onClick: (ItemStack, Player, Builder) -> Unit - The function to run when the itemstack is clicked
             itemStackClickListener = onClick
@@ -235,67 +248,67 @@ class KGui(private val plugin: JavaPlugin) {
          * @param onCloseListener: (Builder, Player) -> Unit - The function to run when the inventory is closed
          * @return Builder
          */
-        fun onClose(onCloseListener: (Builder, Player) -> Unit): Builder {
+        fun onClose(onCloseListener: Builder.(Builder, Player) -> Unit): Builder {
             // Listen to the inventory close event
             // onCloseListener: (Builder, Player) -> Unit - The function to run when the inventory is closed
             this.onCloseListener = onCloseListener
             return this
         }
 
-        @EventHandler
-        private fun onInventoryOpen(event: InventoryOpenEvent) {
+        internal fun onInventoryOpen(player: Player) {
             // Check if it's the same inventory
-            if(event.view.title.tac() == title.tac()) {
-                // call on open listener
-                val player = event.player as Player
-                onOpenListener?.let { it(this, player) }
-            }
+            onOpenListener?.let { it(this, player) }
         }
 
-        @EventHandler
-        private fun onInventoryClose(event: InventoryCloseEvent) {
-            // Check if it's the same inventory
-            if(event.view.title.tac() == title.tac()) {
-                // call on close listener
-                onCloseListener?.let { it(this@Builder, event.player as Player) }
-            }
+        /**
+         * Empty the inventory
+         */
+        fun empty(): Builder {
+            // Fills all the slots with the itemStack given
+            // itemStack: ItemStack - The itemstack to fill the slots with
+            itemStacks.clear()
+            itemSetIndex.clear()
+            buttons.clear()
+            conditionsItems.clear()
+            conditionsButton.clear()
+            return this
         }
 
-        @EventHandler
-        private fun onInventoryClick(event: InventoryClickEvent) {
-            val player = event.whoClicked as Player
+        internal fun onInventoryClose(player: Player) {
+            onCloseListener?.let { it(this@Builder, player) }
+        }
 
-            if(event.view.title.tac() == title.tac()) {
-                if(event.currentItem != null) {
-                    if(borderItemStacks.contains(event.currentItem)) {
-                        event.isCancelled = true
-                    }else {
-                        event.isCancelled = !canInteract
+        internal fun onInventoryClick(player: Player, clickType: ClickType, slot: Int, currentItemStack: ItemStack?): Boolean {
+            var returnBool = false
+            currentItemStack?.let {
+                returnBool = if(it in borderItemStacks) {
+                    true
+                }else !canInteract
+            } ?: run {
+                returnBool = !canInteract
+            }
+
+            if(slot in buttons.keys) {
+                buttons[slot]?.let { button ->
+                    when (clickType) {
+                        ClickType.RIGHT -> {
+                            button.onRightClick?.let { it(this, player) }
+                        }
+                        ClickType.LEFT -> {
+                            button.onClick?.let { it(this, player) }
+                        }
+                        else -> { }
                     }
-                }else {
-                    event.isCancelled = !canInteract
-                }
-
-                if(buttons.containsKey(event.rawSlot)) {
-                    buttons[event.rawSlot]!!.onClick?.let { it(this, player) }
-                }
-
-                // Check if in the current slot there is an itemstack inside the itemStacks list then call the listener if not null
-                if(itemStacks.contains(event.currentItem)) {
-                    itemStackClickListener?.let { event.currentItem?.let { it1 -> it(it1, player, this) } }
                 }
             }
-        }
 
-        @EventHandler
-        private fun onPlayerChatEvent(event: AsyncPlayerChatEvent) {
-            val player = event.player
-            val uuid = player.uniqueId
-            if(waitingForPlayer.contains(uuid)) {
-                responses[uuid] = event.message
-                waitingForPlayer.remove(uuid)
-                event.isCancelled = true
+            if(currentItemStack in itemStacks) {
+                itemStackClickListener?.let { onClick ->
+                    currentItemStack?.let { onClick(it, player, this, clickType) }
+                }
             }
+
+            return returnBool
         }
 
         /**
@@ -363,20 +376,6 @@ class KGui(private val plugin: JavaPlugin) {
         }
         
         /**
-         * Sets the InventoryHolder of the Inventory GUI
-         * 
-         * Default: null
-         * @param inventoryHolder: InventoryHolder - The InventoryHolder of the inventory
-         * @return Builder
-         */
-        fun setInventoryHolder(inventoryHolder: InventoryHolder): Builder{
-            // Set the InventoryHolder of the inventory
-            // inventoryHolder: InventoryHolder - The InventoryHolder of the inventory
-            this.inventoryHolder = inventoryHolder
-            return this
-        }
-
-        /**
          * Sets the title of the Inventory GUI
          * 
          * Default: "Inventory"
@@ -398,16 +397,18 @@ class KGui(private val plugin: JavaPlugin) {
          * @return String
          */
         fun askForInput(player: Player, request: String): CompletableFuture<String> {
+            waitingForPlayer.add(player.uniqueId)
+
             player.closeInventory()
             player.sendMessage(request.tac())
-            waitingForPlayer.add(player.uniqueId)
             return CompletableFuture.supplyAsync {
                 try {
                     val uuid = player.uniqueId
                     responses[uuid] = ""
-                    while (responses[uuid]!!.isBlank()) {
+                    while (responses[uuid].isNullOrBlank()) {
                         Thread.sleep(1)
                     }
+                    println("Response: ${responses[uuid]}")
                     return@supplyAsync responses.remove(uuid)
                 }catch (e: Exception) {
                     e.printStackTrace()
@@ -494,12 +495,7 @@ class KGui(private val plugin: JavaPlugin) {
             }
         }
 
-        /**
-         * MUST call this after closing the GUI
-         */
-        fun unregister() {
-            HandlerList.unregisterAll(this)
-        }
+
 
         /**
          * Builds the Inventory GUI
@@ -507,7 +503,8 @@ class KGui(private val plugin: JavaPlugin) {
          * @return Inventory
          */
         fun build(): Inventory {
-            val inventory = Bukkit.createInventory(inventoryHolder, rows * 9, ChatColor.translateAlternateColorCodes('&', title))
+            val inventory = Bukkit.createInventory(player, rows * 9, ChatColor.translateAlternateColorCodes('&', title))
+
             if (border != null) {
                 // Top border
                 val border = border!!
@@ -611,7 +608,12 @@ class KGui(private val plugin: JavaPlugin) {
                 }
             }
 
+
             return inventory
+        }
+
+        override fun getInventory(): Inventory {
+            return build()
         }
     }
 }
