@@ -28,7 +28,9 @@ GuiBorder border = new GuiBorder();
 border.setDefaultItemStack(new ItemStack(Material.RED_STAINED_GLASS_PANE));
 
 // Build the GUI
-Inventory gui = new KGui(PLUGIN).builder(1)
+KGui kGui = new KGui(PLUGIN);
+kGui.init()
+Inventory gui = kGui.builder(PLAYER)
     .setTitle("&cItem Search")
     .setRows(6)
     .setBorder(border)
@@ -55,7 +57,9 @@ border.defaultItemStack = ItemStack(Material.RED_STAINED_GLASS_PANE)
 
 
 // Build the GUI
-val gui: Inventory = KGui(plugin).builder(1)
+val kGui = KGui(PLUGIN)
+kGui.init()
+val gui: Inventory = kGui.builder(PLAYER)
   .setTitle("&cItem Search")
   .setRows(6)
   .setBorder(border)
