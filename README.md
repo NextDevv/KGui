@@ -11,32 +11,6 @@ KGui is a powerful and user-friendly API for creating inventory GUIs in Spigot p
 ## Getting Started
 To get started with KGui, follow these steps:
 1. **Dependency Setup:** Add KGui to your project's dependencies. You can either compile the library yourself or use a dependency management tool like Maven or Gradle.
-  **gradle**
-```GRADLE
-repositories {
-    maven { url 'https://jitpack.io' }
-}
-
-dependencies {
-    implementation 'com.github.NextDevv:KGui:1.0.0'
-}
-```
-  **maven**
-```XML
-<repositories>
- <repository>
-   <id>jitpack.io</id>
-   <url>https://jitpack.io</url>
- </repository>
-</repositories>
-
-
-<dependency>
-   <groupId>com.github.NextDevv</groupId>
-   <artifactId>KGui</artifactId>
-   <version>1.0.0</version>
-</dependency>
-``` 
 3. **Import KGui Classes:** Import the necessary classes at the beginning of your plugin class or wherever you intend to use KGui:
 ```JAVA
 import com.nextdevv.kgui.api.KGui;
@@ -54,7 +28,7 @@ GuiBorder border = new GuiBorder();
 border.setDefaultItemStack(new ItemStack(Material.RED_STAINED_GLASS_PANE));
 
 // Build the GUI
-Inventory gui = new KGui(PLUGIN).builder()
+Inventory gui = new KGui(PLUGIN).builder(1)
     .setTitle("&cItem Search")
     .setRows(6)
     .setBorder(border)
@@ -81,7 +55,7 @@ border.defaultItemStack = ItemStack(Material.RED_STAINED_GLASS_PANE)
 
 
 // Build the GUI
-val gui: Inventory = KGui(plugin).builder()
+val gui: Inventory = KGui(plugin).builder(1)
   .setTitle("&cItem Search")
   .setRows(6)
   .setBorder(border)
