@@ -27,27 +27,43 @@ import org.bukkit.plugin.java.JavaPlugin
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 
+private val inventories = hashMapOf<Inventory, Int>()
 
+internal var Inventory.id: Int
+    get() = inventories[this] ?: -1
+    set(value) {
+        inventories[this] = value
+    }
+
+@Suppress("unused")
 class KGui(private val plugin: JavaPlugin) {
-    val builders: MutableMap<UUID, Builder> = mutableMapOf()
+    internal val builders: MutableMap<UUID, MutableList<Builder>> = mutableMapOf()
 
     fun init() {
         Bukkit.getPluginManager().registerEvents(InventoryListener(this), plugin)
     }
 
     fun builder(player: Player): Builder {
-        return builders.computeIfAbsent(player.uniqueId) { uuid ->
-            val builder = Builder(plugin, player, this)
-            builder
+        val builder = Builder(plugin, player, this)
+        if (builders[player.uniqueId] == null) {
+            builders[player.uniqueId] = mutableListOf(builder)
+        } else {
+            builders[player.uniqueId]!!.add(builder)
         }
+        val indexOf = builders[player.uniqueId]!!.indexOf(builder)
+        builder.builderNumber = indexOf
+        return builder
     }
+
     @Suppress("MemberVisibilityCanBePrivate")
     class Builder(private val plugin: JavaPlugin, private val player: Player, private val kGui: KGui) : InventoryHolder {
         private var title: String = "Inventory"
+        internal var builderNumber = 0
+        internal var active = true
         private var rows: Int = 4
         private var border: GuiBorder? = null
         private var maxPages: Int = 1
-        var currentPage: Int = 1
+        private var currentPage: Int = 1
         private var canInteract: Boolean = false
         private var pages: Pages = Pages()
         private var itemSetIndex = hashMapOf<Int, ItemStack>()
@@ -64,10 +80,49 @@ class KGui(private val plugin: JavaPlugin) {
         private val conditionsButton: HashMap<Int, HashMap<String, Any>> = hashMapOf()
         private val conditionsItems: HashMap<Int, HashMap<String, Any>> = hashMapOf()
         private var changeScreen = false
+        private var permission: String? = null
 
         /**
-         * If you change the current screen of the player the listener will be unregistered and it will break the inventory
-         * @param changeScreen: Boolean - If you change the current screen of the player the listener will be unregistered and it will break the inventory
+         * Updates the inventory
+         * @param func Builder.() -> Unit - The function to run
+         * @param ticks Long - The number of ticks to wait before running the function
+         */
+        fun updater(func: Builder.() -> Unit, ticks: Long): Builder {
+            Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
+                func()
+                update()
+            }, 0, ticks)
+            return this
+        }
+
+        /**
+         * Updates the inventory
+         * @param func Builder.() -> Unit - The function to run
+         * @param ticks Long - The number of ticks to wait before running the function
+         * @param delay Long - The number of ticks to wait before running the function
+         */
+        fun updater(func: Builder.() -> Unit, ticks: Long, delay: Long): Builder {
+            Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
+                func()
+                update()
+            }, delay, ticks)
+            return this
+        }
+
+        /**
+         * Updates the inventory
+         */
+        fun update(): Builder {
+            val inventory = build()
+            player.openInventory(inventory)
+            return this
+        }
+
+        /**
+         * If you change the current screen of the player,
+         * the listener will be unregistered, and it will break the inventory
+         * @param changeScreen: Boolean - If you change the current screen of the player,
+         * the listener will be unregistered, and it will break the inventory
          * @return Builder
          */
         fun changeScreen(changeScreen: Boolean): Builder {
@@ -111,6 +166,19 @@ class KGui(private val plugin: JavaPlugin) {
          * @return Builder
          */
         fun addItemStackClickListener(onClick: (ItemStack, Player, Builder, ClickType) -> Unit): Builder {
+            // Adds a listener to every itemstack added to the inventory
+            // onClick: (ItemStack, Player, Builder) -> Unit - The function to run when the itemstack is clicked
+            itemStackClickListener = onClick
+            return this
+        }
+
+        /**
+         * Adds a listener to every itemstack added to the inventory
+         *
+         * @param onClick: (ItemStack, Player, Builder) -> Unit - The function to run when the itemstack is clicked
+         * @return Builder
+         */
+        fun addItemStackClick(onClick: (ItemStack, Player, Builder, ClickType) -> Unit): Builder {
             // Adds a listener to every itemstack added to the inventory
             // onClick: (ItemStack, Player, Builder) -> Unit - The function to run when the itemstack is clicked
             itemStackClickListener = onClick
@@ -255,6 +323,19 @@ class KGui(private val plugin: JavaPlugin) {
             return this
         }
 
+        /**
+         * Listen to the inventory open event
+         *
+         * @param onOpenListener: Builder.(Builder, Player) -> Unit - The function to run when the inventory is opened
+         * @return Builder
+         */
+        fun onOpen(onOpenListener: Builder.(Builder, Player) -> Unit): Builder {
+            // Listen to the inventory open event
+            // onOpenListener: Builder.(Builder, Player) -> Unit - The function to run when the inventory is opened
+            this.onOpenListener = onOpenListener
+            return this
+        }
+
         internal fun onInventoryOpen(player: Player) {
             // Check if it's the same inventory
             onOpenListener?.let { it(this, player) }
@@ -271,6 +352,21 @@ class KGui(private val plugin: JavaPlugin) {
             buttons.clear()
             conditionsItems.clear()
             conditionsButton.clear()
+            return this
+        }
+
+
+        /**
+         * Sets the itemstacks of the inventory from index X to index Y
+         *
+         * @param itemStacks: List<ItemStack> - The itemstacks to set
+         * @param from: Int - The index to start setting the itemstacks at
+         * @param to: Int - The index to stop setting the itemstacks at
+         */
+        fun setItemStacks(itemStacks: List<ItemStack>, from: Int, to: Int): Builder {
+            for (i in from .. to) {
+                this.itemStacks.add(itemStacks[i])
+            }
             return this
         }
 
@@ -421,7 +517,7 @@ class KGui(private val plugin: JavaPlugin) {
          * Sets the border of the Inventory GUI
          * 
          * Default: null
-         * @param border: GuiBorder - The border of the inventory
+         * @param border GuiBorder - The border of the inventory
          * @return Builder
          */
         fun setBorder(border: GuiBorder): Builder {
@@ -435,7 +531,7 @@ class KGui(private val plugin: JavaPlugin) {
          * Sets the max pages of the Inventory GUI
          *
          * Default: 1
-         * @param maxPages: Int - The max pages of the inventory
+         * @param maxPages Int - The max pages of the inventory
          * @return Builder
          */
         fun setMaxPages(maxPages: Int): Builder {
@@ -449,7 +545,7 @@ class KGui(private val plugin: JavaPlugin) {
          * Sets the current page of the Inventory GUI
          *
          * Default: 1
-         * @param currentPage: Int - The current page of the inventory
+         * @param currentPage Int - The current page of the inventory
          * @return Builder
          */
         fun setCurrentPage(currentPage: Int): Builder {
@@ -457,6 +553,30 @@ class KGui(private val plugin: JavaPlugin) {
             // currentPage: Int - The current page of the inventory
             this.currentPage = currentPage
             return this
+        }
+
+        /**
+         * Gets the current page of the Inventory GUI
+         */
+        fun getCurrentPage(): Int {
+            return currentPage
+        }
+
+        /**
+         * Sets the permission to open the Inventory GUI
+         * @param permission String - The permission to open the inventory
+         * @return [Builder]
+         */
+        fun setPermission(permission: String?): Builder {
+            this.permission = permission
+            return this
+        }
+
+        /**
+         * Gets the permission to open the Inventory GUI
+         */
+        fun getPermission(): String? {
+            return permission
         }
 
         /**
@@ -495,8 +615,6 @@ class KGui(private val plugin: JavaPlugin) {
             }
         }
 
-
-
         /**
          * Builds the Inventory GUI
          * 
@@ -504,7 +622,7 @@ class KGui(private val plugin: JavaPlugin) {
          */
         fun build(): Inventory {
             val inventory = Bukkit.createInventory(player, rows * 9, ChatColor.translateAlternateColorCodes('&', title))
-
+            inventory.id = builderNumber
             if (border != null) {
                 // Top border
                 val border = border!!
@@ -595,7 +713,7 @@ class KGui(private val plugin: JavaPlugin) {
                 itemStacks.add(itemSetIndex[index]!!)
             }
 
-            // Set the buttons specified in the buttons hashmap
+            // Set the buttons specified in the button hashmap
             for (index in buttons.keys) {
                 inventory.setItem(index, buttons[index]!!.getItemStack())
             }

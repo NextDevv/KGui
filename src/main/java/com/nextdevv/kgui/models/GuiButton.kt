@@ -16,6 +16,7 @@ class GuiButton {
         return this
     }
 
+    @Deprecated("Use setOnClick instead", ReplaceWith("onClick"))
     fun setOnClick(onClick: (KGui.Builder, Player) -> Unit): GuiButton {
         this.onClick = onClick
         return this
@@ -26,6 +27,7 @@ class GuiButton {
         return this
     }
 
+    @Deprecated("Use onRightClick instead", ReplaceWith("onRightClick"))
     fun setOnRightClick(onRightClick: (KGui.Builder, Player) -> Unit): GuiButton {
         this.onRightClick = onRightClick
         return this
