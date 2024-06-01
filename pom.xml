@@ -6,7 +6,7 @@
 
     <groupId>com.nextdevv</groupId>
     <artifactId>KGui</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.3-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>KGui</name>
@@ -112,12 +112,19 @@
         </repository>
     </repositories>
 
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
+
     <dependencies>
         <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot-api</artifactId>
             <version>1.20.1-R0.1-SNAPSHOT</version>
-            <scope>provided</scope>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>

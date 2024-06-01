@@ -5,6 +5,7 @@ import com.nextdevv.kgui.api.id
 import org.bukkit.NamespacedKey
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
+import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
@@ -65,7 +66,7 @@ class InventoryListener(private val kGui: KGui): Listener {
         }catch (_: Exception) {}
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     fun onPlayerChatEvent(e: AsyncPlayerChatEvent) {
         val player = e.player
         try {
@@ -79,6 +80,8 @@ class InventoryListener(private val kGui: KGui): Listener {
                     }
                 }
             }
-        } catch (_: Exception) { }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 }

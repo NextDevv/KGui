@@ -137,8 +137,6 @@ class KGui(private val plugin: JavaPlugin) {
          * @return Builder
          */
         fun fill(itemStack: ItemStack): Builder {
-            // Fills all the slots with the itemStack given
-            // itemStack: ItemStack - The itemstack to fill the slots with
             for (i in 0 until rows * 9) {
                 itemSetIndex[i] = itemStack
             }
@@ -153,8 +151,6 @@ class KGui(private val plugin: JavaPlugin) {
          * @return Builder
          */
         fun canInteract(canInteract: Boolean): Builder {
-            // Sets if the player can interact with the inventory
-            // canInteract: Boolean - If the player can interact with the inventory
             this.canInteract = canInteract
             return this
         }
@@ -166,8 +162,6 @@ class KGui(private val plugin: JavaPlugin) {
          * @return Builder
          */
         fun addItemStackClickListener(onClick: (ItemStack, Player, Builder, ClickType) -> Unit): Builder {
-            // Adds a listener to every itemstack added to the inventory
-            // onClick: (ItemStack, Player, Builder) -> Unit - The function to run when the itemstack is clicked
             itemStackClickListener = onClick
             return this
         }
@@ -179,8 +173,6 @@ class KGui(private val plugin: JavaPlugin) {
          * @return Builder
          */
         fun addItemStackClick(onClick: (ItemStack, Player, Builder, ClickType) -> Unit): Builder {
-            // Adds a listener to every itemstack added to the inventory
-            // onClick: (ItemStack, Player, Builder) -> Unit - The function to run when the itemstack is clicked
             itemStackClickListener = onClick
             return this
         }
@@ -345,8 +337,6 @@ class KGui(private val plugin: JavaPlugin) {
          * Empty the inventory
          */
         fun empty(): Builder {
-            // Fills all the slots with the itemStack given
-            // itemStack: ItemStack - The itemstack to fill the slots with
             itemStacks.clear()
             itemSetIndex.clear()
             buttons.clear()
@@ -415,9 +405,6 @@ class KGui(private val plugin: JavaPlugin) {
          * @return Builder
          */
         fun setItem(itemStack: ItemStack, index: Int): Builder {
-            // Sets a item at inventory index
-            // itemStack: ItemStack - The item to set
-            // index: Int - The index to set the item at
             itemSetIndex[index] = itemStack
             return this
         }
@@ -462,7 +449,7 @@ class KGui(private val plugin: JavaPlugin) {
         /**
          * Sets the row of the Inventory GUI that is 9 slots wide
          * 
-         * Default: 4 rows
+         * Default: Four rows
          * @param rows: Int - The number of rows in the inventory
          * @return Builder
          */
@@ -500,12 +487,12 @@ class KGui(private val plugin: JavaPlugin) {
             return CompletableFuture.supplyAsync {
                 try {
                     val uuid = player.uniqueId
-                    responses[uuid] = ""
                     while (responses[uuid].isNullOrBlank()) {
+                        println(responses)
                         Thread.sleep(1)
                     }
                     println("Response: ${responses[uuid]}")
-                    return@supplyAsync responses.remove(uuid)
+                    return@supplyAsync responses[uuid]
                 }catch (e: Exception) {
                     e.printStackTrace()
                     return@supplyAsync ""
@@ -623,10 +610,12 @@ class KGui(private val plugin: JavaPlugin) {
         fun build(): Inventory {
             val inventory = Bukkit.createInventory(player, rows * 9, ChatColor.translateAlternateColorCodes('&', title))
             inventory.id = builderNumber
+            itemStacks.clear()
+            borderItemStacks.clear()
+
             if (border != null) {
                 // Top border
                 val border = border!!
-                borderItemStacks.clear()
                 borderItemStacks.add(border.defaultItemStack)
                 applyToBorderStack(border.defaultItemStack)
 
@@ -725,7 +714,6 @@ class KGui(private val plugin: JavaPlugin) {
                     itemStacks.add(itemStack)
                 }
             }
-
 
             return inventory
         }

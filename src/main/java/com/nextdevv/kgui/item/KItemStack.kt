@@ -7,12 +7,12 @@ import org.bukkit.enchantments.Enchantment
 import org.bukkit.inventory.ItemFlag
 import org.bukkit.inventory.ItemStack
 
-class KItemStack {
+class KItemStack(private var itemStack: ItemStack = ItemStack(Material.AIR)) {
     fun builder(): Builder {
-        return Builder()
+        return Builder(itemStack)
     }
 
-    class Builder {
+    class Builder(private var itemStack: ItemStack = ItemStack(Material.AIR)) {
         private var name: String = ""
         private var lore: MutableList<String> = mutableListOf()
         private var material: Material = Material.BARRIER
@@ -94,7 +94,8 @@ class KItemStack {
         }
 
         fun build(): ItemStack {
-            val itemStack = ItemStack(material)
+            itemStack.type = material
+            itemStack.amount = amount
             val itemMeta = itemStack.itemMeta
 
             itemMeta?.setDisplayName(ChatColor.translateAlternateColorCodes('&', name))
