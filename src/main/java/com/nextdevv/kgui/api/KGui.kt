@@ -185,9 +185,6 @@ class KGui(private val plugin: JavaPlugin) {
          * @return Builder
          */
         fun addButton(index: Int, guiButton: GuiButton): Builder {
-            // Adds a button to the inventory
-            // index: Int - The index to add the button at
-            // guiButton: GuiButton - The button to add
             buttons[index] = guiButton
             return this
         }
@@ -201,11 +198,7 @@ class KGui(private val plugin: JavaPlugin) {
          * @return Builder
          */
         fun addButton(index: Int, itemStack: ItemStack, onClick: (ItemStack, Player, Builder) -> Unit): Builder {
-            // Adds a button to the inventory
-            // index: Int - The index to add the button at
-            // itemStack: ItemStack - The itemstack to add
-            // onClick: (ItemStack, Player, Builder) -> Unit - The function to run when the itemstack is clicked
-            buttons[index] = GuiButton().setItemStack(itemStack).setOnClick { builder, player ->
+            buttons[index] = GuiButton().setItemStack(itemStack).onClick { builder, player ->
                 onClick(itemStack, player, builder)
             }
             return this
@@ -219,9 +212,6 @@ class KGui(private val plugin: JavaPlugin) {
          * @return Builder
          */
         fun createCacheVariable(key: String, value: Any): Builder {
-            // Create a cache variable to access at any time
-            // key: String - The key of the cache variable
-            // value: Any - The value of the cache variable
             cacheVariables[key] = value
             return this
         }
@@ -378,10 +368,10 @@ class KGui(private val plugin: JavaPlugin) {
                 buttons[slot]?.let { button ->
                     when (clickType) {
                         ClickType.RIGHT -> {
-                            button.onRightClick?.let { it(this, player) }
+                            button.getOnRightClick()?.let { it(this, player) }
                         }
                         ClickType.LEFT -> {
-                            button.onClick?.let { it(this, player) }
+                            button.getOnClick()?.let { it(this, player) }
                         }
                         else -> { }
                     }
