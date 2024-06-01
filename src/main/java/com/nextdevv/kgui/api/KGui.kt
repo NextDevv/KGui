@@ -488,10 +488,8 @@ class KGui(private val plugin: JavaPlugin) {
                 try {
                     val uuid = player.uniqueId
                     while (responses[uuid].isNullOrBlank()) {
-                        println(responses)
                         Thread.sleep(1)
                     }
-                    println("Response: ${responses[uuid]}")
                     return@supplyAsync responses[uuid]
                 }catch (e: Exception) {
                     e.printStackTrace()
