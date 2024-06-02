@@ -1,6 +1,9 @@
 # KGui - Easy Spigot Inventory GUI Creation
 KGui is a powerful and user-friendly API for creating inventory GUIs in Spigot plugins. It simplifies the process of designing interactive and dynamic GUIs for your Minecraft server, allowing you to focus on creating engaging player experiences without getting bogged down in complex GUI code.
 
+# Docs
+https://docs.nextdevv.com/
+
 ## Features
 - Simple and intuitive API for GUI creation.
 - Easily add buttons, items, and interactive elements to your GUIs.
